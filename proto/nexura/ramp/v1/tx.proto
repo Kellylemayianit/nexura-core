@@ -1,0 +1,54 @@
+syntax = "proto3";
+package nexura.ramp.v1;
+
+option go_package = "github.com/Kellylemayianit/nexura-core/x/ramp/types";
+
+import "gogoproto/gogo.proto";
+import "cosmos/msg/v1/msg.proto";
+import "nexura/ramp/v1/ramp.proto";
+
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+  rpc CreateIntent(MsgCreateIntent) returns (MsgCreateIntentResponse);
+  rpc CancelIntent(MsgCancelIntent) returns (MsgCancelIntentResponse);
+  rpc ResolveAmbiguous(MsgResolveAmbiguous) returns (MsgResolveAmbiguousResponse);
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+}
+
+// Can be submitted by the gateway on a user's behalf via x/authz.
+message MsgCreateIntent {
+  option (cosmos.msg.v1.signer) = "creator";
+  string creator = 1;
+  string owner = 2;
+  IntentType type = 3;
+  RailType rail = 4;
+  string zone_id = 5;
+  string denom = 6;
+  string amount = 7 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  bytes counterparty_commitment = 8;
+}
+message MsgCreateIntentResponse { string intent_id = 1; }
+
+message MsgCancelIntent {
+  option (cosmos.msg.v1.signer) = "creator";
+  string creator = 1;
+  string intent_id = 2;
+}
+message MsgCancelIntentResponse {}
+
+// Authority: attestor quorum (via fiatoracle) or the guardian only.
+message MsgResolveAmbiguous {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  string intent_id = 2;
+  bool paid = 3;                 // true: payout completed; false: payout failed
+  bytes evidence_hash = 4;
+}
+message MsgResolveAmbiguousResponse {}
+
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;          // x/gov module account
+  Params params = 2 [(gogoproto.nullable) = false];
+}
+message MsgUpdateParamsResponse {}

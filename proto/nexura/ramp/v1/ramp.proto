@@ -1,0 +1,74 @@
+syntax = "proto3";
+package nexura.ramp.v1;
+
+option go_package = "github.com/Kellylemayianit/nexura-core/x/ramp/types";
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
+
+// Direction of the money movement relative to the Hub.
+enum IntentType {
+  INTENT_TYPE_UNSPECIFIED = 0;
+  INTENT_TYPE_ON_RAMP = 1;   // fiat/stablecoin in, partner-issued units minted
+  INTENT_TYPE_OFF_RAMP = 2;  // units escrowed, payout made, units burned
+}
+
+// The door the leg goes through. A leg is one atomic movement on one rail.
+enum RailType {
+  RAIL_TYPE_UNSPECIFIED = 0;
+  RAIL_TYPE_FIAT_PROVIDER = 1;
+  RAIL_TYPE_STABLECOIN = 2;
+  RAIL_TYPE_IBC = 3;
+}
+
+// Unified state set; valid transitions per IntentType are enforced in x/ramp/types/fsm.go.
+enum IntentState {
+  INTENT_STATE_UNSPECIFIED = 0;
+  INTENT_STATE_CREATED = 1;
+  INTENT_STATE_AWAITING_FIAT = 2;   // on-ramp
+  INTENT_STATE_ATTESTED = 3;        // on-ramp: fiat confirmed by threshold
+  INTENT_STATE_PAYOUT_PENDING = 4;  // off-ramp
+  INTENT_STATE_ATTESTED_PAID = 5;   // off-ramp: payout confirmed by threshold
+  INTENT_STATE_PAYOUT_FAILED = 6;
+  INTENT_STATE_AMBIGUOUS = 7;       // held; never retried elsewhere until resolved
+  INTENT_STATE_SETTLED = 8;         // terminal
+  INTENT_STATE_EXPIRED = 9;         // terminal
+  INTENT_STATE_UNDERPAID = 10;
+  INTENT_STATE_REVERSED = 11;       // terminal
+  INTENT_STATE_REFUNDED = 12;       // terminal
+  INTENT_STATE_QUARANTINED = 13;    // compliance hold before mint
+}
+
+// No PII: only ids, amounts and hashes of off-chain references.
+message Intent {
+  string id = 1;                          // idempotency key across chain and engine
+  IntentType type = 2;
+  IntentState state = 3;
+  RailType rail = 4;
+  string zone_id = 5;                     // originating Zone, or "hub" for direct users
+  string owner = 6;                       // bech32 account that owns the intent
+  string provider_id = 7;                 // reserve holder chosen by the router
+  string denom = 8;                       // partner-issued unit, e.g. "ckes"
+  string amount = 9 [
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  bytes counterparty_commitment = 10;     // hash of off-chain destination/source reference
+  bytes provider_ref_hash = 11;           // hash of provider transaction reference
+  google.protobuf.Timestamp created_at = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+  google.protobuf.Timestamp expires_at = 13 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message Params {
+  string max_intent_amount = 1 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  string max_daily_per_account = 2 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  int64 intent_ttl_seconds = 3;
+  int64 on_ramp_holdback_seconds = 4;     // reversal window after credit
+  uint32 max_expiries_per_block = 5;      // bounded EndBlocker work
+  bool minting_paused = 6;                // guardian circuit breaker
+}
+
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  repeated Intent intents = 2 [(gogoproto.nullable) = false];
+}

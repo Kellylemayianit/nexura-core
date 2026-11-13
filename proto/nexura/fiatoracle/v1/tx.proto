@@ -1,0 +1,75 @@
+syntax = "proto3";
+package nexura.fiatoracle.v1;
+
+option go_package = "github.com/Kellylemayianit/nexura-core/x/fiatoracle/types";
+
+import "gogoproto/gogo.proto";
+import "cosmos/msg/v1/msg.proto";
+import "nexura/fiatoracle/v1/fiatoracle.proto";
+
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+  rpc AttestLeg(MsgAttestLeg) returns (MsgAttestLegResponse);
+  rpc SubmitReserveAttestation(MsgSubmitReserveAttestation) returns (MsgSubmitReserveAttestationResponse);
+  rpc RegisterProvider(MsgRegisterProvider) returns (MsgRegisterProviderResponse);
+  rpc SetAttestor(MsgSetAttestor) returns (MsgSetAttestorResponse);
+  rpc ChallengeAttestation(MsgChallengeAttestation) returns (MsgChallengeAttestationResponse);
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+}
+
+// One attestation per (intent_id, leg, attestor). When the summed weight of matching
+// attestations reaches params.threshold_weight, fiatoracle calls the x/ramp keeper hook.
+message MsgAttestLeg {
+  option (cosmos.msg.v1.signer) = "attestor";
+  string attestor = 1;
+  string intent_id = 2;
+  uint32 leg = 3;
+  LegOutcome outcome = 4;
+  string amount = 5 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  bytes provider_ref_hash = 6;
+}
+message MsgAttestLegResponse { bool threshold_reached = 1; }
+
+message MsgSubmitReserveAttestation {
+  option (cosmos.msg.v1.signer) = "attestor";
+  string attestor = 1;
+  string provider_id = 2;
+  string denom = 3;
+  string reserve = 4 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  bytes statement_hash = 5;
+}
+message MsgSubmitReserveAttestationResponse {}
+
+// Governance-only.
+message MsgRegisterProvider {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  Provider provider = 2 [(gogoproto.nullable) = false];
+}
+message MsgRegisterProviderResponse {}
+
+message MsgSetAttestor {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  Attestor attestor = 2 [(gogoproto.nullable) = false];
+  bool remove = 3;
+}
+message MsgSetAttestorResponse {}
+
+// Raised by another attestor or the guardian within the challenge window.
+message MsgChallengeAttestation {
+  option (cosmos.msg.v1.signer) = "challenger";
+  string challenger = 1;
+  string intent_id = 2;
+  uint32 leg = 3;
+  string accused_attestor = 4;
+  bytes evidence_hash = 5;
+}
+message MsgChallengeAttestationResponse {}
+
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  Params params = 2 [(gogoproto.nullable) = false];
+}
+message MsgUpdateParamsResponse {}

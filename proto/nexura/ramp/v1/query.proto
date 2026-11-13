@@ -1,0 +1,21 @@
+syntax = "proto3";
+package nexura.ramp.v1;
+
+option go_package = "github.com/Kellylemayianit/nexura-core/x/ramp/types";
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "nexura/ramp/v1/ramp.proto";
+
+service Query {
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/nexura/ramp/v1/params";
+  }
+  rpc Intent(QueryIntentRequest) returns (QueryIntentResponse) {
+    option (google.api.http).get = "/nexura/ramp/v1/intents/{id}";
+  }
+}
+message QueryParamsRequest {}
+message QueryParamsResponse { Params params = 1 [(gogoproto.nullable) = false]; }
+message QueryIntentRequest { string id = 1; }
+message QueryIntentResponse { Intent intent = 1 [(gogoproto.nullable) = false]; }

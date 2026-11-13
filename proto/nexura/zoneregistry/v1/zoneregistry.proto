@@ -1,0 +1,58 @@
+syntax = "proto3";
+package nexura.zoneregistry.v1;
+
+option go_package = "github.com/Kellylemayianit/nexura-core/x/zoneregistry/types";
+
+import "gogoproto/gogo.proto";
+
+enum RiskClass {
+  RISK_CLASS_UNSPECIFIED = 0;
+  RISK_CLASS_LOW = 1;        // hospitality, health bookings, retail
+  RISK_CLASS_MEDIUM = 2;     // lending, SACCO advances
+  RISK_CLASS_HIGH = 3;       // betting, prediction pools, tokenized shares
+}
+
+enum ZoneStatus {
+  ZONE_STATUS_UNSPECIFIED = 0;
+  ZONE_STATUS_PENDING = 1;
+  ZONE_STATUS_ACTIVE = 2;
+  ZONE_STATUS_SUSPENDED = 3;
+}
+
+enum SecurityMode {
+  SECURITY_MODE_UNSPECIFIED = 0;
+  SECURITY_MODE_HOSTED = 1;
+  SECURITY_MODE_SELF_RUN = 2;
+  SECURITY_MODE_SHARED = 3;
+}
+
+message CorridorLimit {
+  string denom = 1;
+  string per_intent = 2 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  string per_day = 3 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+}
+
+message Zone {
+  string id = 1;
+  string owner = 2;
+  string sector = 3;
+  SecurityMode security_mode = 4;
+  RiskClass risk_class = 5;
+  uint32 tier = 6;                              // rises with track record
+  ZoneStatus status = 7;
+  repeated string ibc_channels = 8;
+  repeated string allowed_provider_ids = 9;     // intersection of risk class and provider contracts
+  repeated CorridorLimit limits = 10 [(gogoproto.nullable) = false];
+  bool hub_pools_enabled = 11;                  // verified Zones only
+  bytes kyb_reference_hash = 12;                // off-chain KYB file, never stored on-chain
+}
+
+message Params {
+  string pool_creation_bond_denom = 1;
+  string zone_verification_bond = 2 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+}
+
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  repeated Zone zones = 2 [(gogoproto.nullable) = false];
+}

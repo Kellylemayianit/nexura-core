@@ -1,0 +1,70 @@
+syntax = "proto3";
+package nexura.fiatoracle.v1;
+
+option go_package = "github.com/Kellylemayianit/nexura-core/x/fiatoracle/types";
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
+
+enum ProviderClass {
+  PROVIDER_CLASS_UNSPECIFIED = 0;
+  PROVIDER_CLASS_FIAT = 1;
+  PROVIDER_CLASS_STABLECOIN = 2;
+}
+
+enum LegOutcome {
+  LEG_OUTCOME_UNSPECIFIED = 0;
+  LEG_OUTCOME_CONFIRMED = 1;
+  LEG_OUTCOME_FAILED = 2;
+  LEG_OUTCOME_AMBIGUOUS = 3;
+}
+
+message Attestor {
+  string address = 1;
+  uint32 weight = 2;
+  string bond = 3 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  string throughput_cap = 4 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false]; // multiple of bond
+  bool jailed = 5;
+}
+
+message Provider {
+  string id = 1;
+  ProviderClass class = 2;
+  repeated string corridors = 3;          // e.g. "KE:ckes", "TZ:ctzs"
+  repeated string denoms = 4;
+  string per_intent_limit = 5 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  bool active = 6;
+}
+
+// Per-provider reserve record; mint cap = attested_reserve * safety_factor_bps / 10000.
+message ReserveRecord {
+  string provider_id = 1;
+  string denom = 2;
+  string attested_reserve = 3 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  string minted_supply = 4 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  google.protobuf.Timestamp attested_at = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message Attestation {
+  string intent_id = 1;
+  uint32 leg = 2;
+  string attestor = 3;
+  LegOutcome outcome = 4;
+  string amount = 5 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  bytes provider_ref_hash = 6;
+}
+
+message Params {
+  uint32 threshold_weight = 1;            // launch: 2 of 2
+  int64 attestation_ttl_seconds = 2;
+  int64 reserve_staleness_seconds = 3;    // after this, the provider's mint cap drops to zero
+  uint32 safety_factor_bps = 4;           // e.g. 9500 = mint up to 95% of attested reserve
+  int64 unbonding_seconds = 5;            // longer than reversal/reconciliation lag
+}
+
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  repeated Attestor attestors = 2 [(gogoproto.nullable) = false];
+  repeated Provider providers = 3 [(gogoproto.nullable) = false];
+  repeated ReserveRecord reserves = 4 [(gogoproto.nullable) = false];
+}

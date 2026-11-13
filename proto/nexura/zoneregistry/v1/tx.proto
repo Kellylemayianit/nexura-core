@@ -1,0 +1,47 @@
+syntax = "proto3";
+package nexura.zoneregistry.v1;
+
+option go_package = "github.com/Kellylemayianit/nexura-core/x/zoneregistry/types";
+
+import "gogoproto/gogo.proto";
+import "cosmos/msg/v1/msg.proto";
+import "nexura/zoneregistry/v1/zoneregistry.proto";
+
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+  rpc ApplyZone(MsgApplyZone) returns (MsgApplyZoneResponse);
+  rpc VerifyZone(MsgVerifyZone) returns (MsgVerifyZoneResponse);
+  rpc SetZoneStatus(MsgSetZoneStatus) returns (MsgSetZoneStatusResponse);
+}
+
+// Builder applies; KYB happens off-chain and only its hash is stored.
+message MsgApplyZone {
+  option (cosmos.msg.v1.signer) = "owner";
+  string owner = 1;
+  string zone_id = 2;
+  string sector = 3;
+  SecurityMode security_mode = 4;
+  bytes kyb_reference_hash = 5;
+}
+message MsgApplyZoneResponse {}
+
+// Governance or the onboarding council sets risk class, rails and limits.
+message MsgVerifyZone {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  string zone_id = 2;
+  RiskClass risk_class = 3;
+  uint32 tier = 4;
+  repeated string allowed_provider_ids = 5;
+  repeated CorridorLimit limits = 6 [(gogoproto.nullable) = false];
+  bool hub_pools_enabled = 7;
+}
+message MsgVerifyZoneResponse {}
+
+message MsgSetZoneStatus {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  string zone_id = 2;
+  ZoneStatus status = 3;
+}
+message MsgSetZoneStatusResponse {}
