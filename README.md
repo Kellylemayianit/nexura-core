@@ -1,28 +1,12 @@
-# nexura-core
+# gateway
 
-Sovereign economic engine for African commerce: a Cosmos SDK hub chain (the L0), the ramp logic that
-connects it to local money rails, and a testable HTTP simulation of that logic.
+Zero-dependency HTTP simulation of the Nexura ramp logic. No real money, no real chain.
+`src/fsm.js` mirrors `x/ramp/types/fsm.go` at the repo root.
 
-```
-nexura-core/
-├── gateway/            JavaScript. HTTP simulation of the ramp rules. Deploys to Vercel or Cloudflare Workers.
-├── proto/nexura/       Protobuf contracts for x/ramp, x/fiatoracle, x/zoneregistry
-├── x/ramp/types/       Go. Ramp intent state machine + tests (pure Go, no downloads needed to test)
-├── scripts/            Toolchain setup, chain scaffold, local node, FSM test
-├── docs/
-│   ├── DEPLOYMENT.md   START HERE: deploy guide (GitHub, CI, Vercel / Cloudflare, cloud chain run)
-│   └── BUILD.md        Phase-by-phase build plan for the Hub chain
-└── .github/workflows/  ci.yml (every push) and chain-smoke.yml (manual cloud chain boot)
-```
+Deploy and verify: see `../docs/DEPLOYMENT.md` (set Root Directory to `gateway`).
 
-## Honest status
+Try first: `GET /v1/selftest`, `GET /v1/scenarios`, `GET /v1/simulate/onramp_happy`, `GET /v1/fsm`.
+Set `API_KEY` in the host's environment; send it as `x-api-key` (or `?key=` for quick browser checks).
 
-| Part | State |
-|---|---|
-| `gateway/` | Built and tested (19 tests). Not yet deployed by me: your first deploy is the real test. |
-| `x/ramp/types/fsm.go` | Written, **not compiled** (no Go toolchain where it was written). CI will run it for you. |
-| `proto/` | Written, **not compiled**. Expect small import fixes once wired into the scaffolded chain. |
-| Hub chain (app, modules) | **Not scaffolded yet.** Run `chain-smoke` in GitHub Actions, or `scripts/01-scaffold.sh` on a machine with Go. |
-| Real provider adapters (Daraja etc.) | Not built. The gateway has only a receive-and-dedupe callback stub. |
-
-Read **docs/DEPLOYMENT.md** next.
+State is in memory and can reset on serverless hosts; `/v1/simulate/*` and `/v1/selftest` are stateless.
+Tests (Node 20+): `npm test`.
