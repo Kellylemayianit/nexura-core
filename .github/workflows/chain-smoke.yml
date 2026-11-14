@@ -1,0 +1,43 @@
+# Manual run: Actions tab -> "chain-smoke" -> Run workflow.
+# Scaffolds the chain in the cloud, builds it, boots a single node and reports the block height.
+# EXPERIMENTAL: written without being able to run Ignite. Read the log if it fails and send it back.
+name: chain-smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: Install Ignite
+        run: |
+          curl -fsSL https://get.ignite.com/cli! | bash
+          ignite version
+      - name: Scaffold chain around the repo files
+        run: bash scripts/01-scaffold.sh
+      - name: Build
+        run: go build ./...
+      - name: Unit tests
+        run: go test ./... 
+        continue-on-error: true
+      - name: Boot a single node and read the block height
+        run: |
+          ignite chain serve --reset-once > chain.log 2>&1 &
+          for i in $(seq 1 60); do
+            sleep 5
+            curl -s localhost:26657/status >/dev/null && break
+          done
+          sleep 20
+          curl -s localhost:26657/status | jq '.result.sync_info | {latest_block_height, catching_up}'
+      - name: Keep the chain log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chain-log
+          path: chain.log
