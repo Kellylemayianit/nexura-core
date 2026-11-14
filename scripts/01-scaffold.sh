@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
-# Phase 1: scaffold the Hub chain and the four custom modules.
-# Run from the PARENT directory of where you want nexura-core to live.
+# Scaffolds the Hub chain AROUND the files already in this repo (protos, fsm.go, gateway/).
+# UNTESTED: Ignite flags change between versions. If a command errors, run it with --help.
 set -euo pipefail
-ignite scaffold chain github.com/Kellylemayianit/nexura-core \
-  --address-prefix nexura --no-module
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TMP="$(mktemp -d)"
+cd "$TMP"
+ignite scaffold chain github.com/Kellylemayianit/nexura-core --address-prefix nexura --no-module
 cd nexura-core
-# Custom modules. IBC-capable so Zones can talk to them (zoneregistry, ramp).
 ignite scaffold module fiatoracle   --dep bank
-ignite scaffold module ramp         --dep bank,fiatoracle,zoneregistry
 ignite scaffold module zoneregistry --ibc
+ignite scaffold module ramp         --dep bank
 ignite scaffold module nexuratex    --dep bank
 ignite scaffold module identitymap
-echo "Scaffold done. Now copy the proto contracts from ../proto over the generated ones (see docs/BUILD.md, Phase 2)."
+# Copy generated files into the repo WITHOUT overwriting anything we already have.
+if command -v rsync >/dev/null; then
+  rsync -a --ignore-existing --exclude .git ./ "$REPO_ROOT"/
+else
+  cp -rn ./. "$REPO_ROOT"/ || true
+fi
+echo "Scaffold merged into $REPO_ROOT"
