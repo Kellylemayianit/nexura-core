@@ -1,9 +1,30 @@
 name: ci
+<<<<<<< HEAD
+=======
+
+>>>>>>> 918ca8d308f4f7e7748fb2975b738bf4871c5d6a
 on:
   push:
     branches: [main]
   pull_request:
+<<<<<<< HEAD
 jobs:
+=======
+
+jobs:
+  gateway-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+
+>>>>>>> 918ca8d308f4f7e7748fb2975b738bf4871c5d6a
   ramp-state-machine-go:
     runs-on: ubuntu-latest
     steps:
