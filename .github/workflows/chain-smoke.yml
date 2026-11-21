@@ -49,17 +49,16 @@ jobs:
       - name: Unit tests
         run: go test ./...
         continue-on-error: true
-      - name: Boot a single node and read the block height
+      -       - name: Boot a single node and read the block height
         run: |
-          if ignite cosmos --help >/dev/null 2>&1; then IGN="ignite cosmos"; else IGN="ignite"; fi
+          IGN="$(bash scripts/ignite-cmd.sh)"
           $IGN chain serve --reset-once > chain.log 2>&1 &
           for i in $(seq 1 60); do
             sleep 5
             curl -s localhost:26657/status >/dev/null && break
           done
           sleep 20
-          curl -s localhost:26657/status | jq '.result.sync_info | {latest_block_height, catching_up}'
-      - name: Save Go caches
+          curl -s localhost:26657/status | jq '.result.sync_info | {latest_block_height, catching_up}'      - name: Save Go caches
         if: always()
         uses: actions/cache/save@v4
         with:
