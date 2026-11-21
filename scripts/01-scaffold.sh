@@ -24,11 +24,20 @@ scaffold_chain() {
 scaffold_chain
 
 cd nexura-core
-$IGN scaffold module fiatoracle   --dep bank
-$IGN scaffold module zoneregistry --ibc
-$IGN scaffold module ramp         --dep bank
-$IGN scaffold module nexuratex    --dep bank
-$IGN scaffold module identitymap
+
+# Ignite asks a yes/no question if the chain has uncommitted changes, and a CI runner
+# cannot answer it. Commit after every step so it never needs to ask.
+git config user.email "scaffold@local"
+git config user.name "scaffold"
+commit_all() { git add -A && git commit -qm "$1" || true; }
+commit_all "chain scaffold"
+
+for SPEC in "fiatoracle --dep bank" "zoneregistry --ibc" "ramp --dep bank" "nexuratex --dep bank" "identitymap"; do
+  echo "=== scaffolding module: $SPEC"
+  # shellcheck disable=SC2086
+  $IGN scaffold module $SPEC
+  commit_all "scaffold module $SPEC"
+done
 
 # Copy generated files into the repo WITHOUT overwriting anything we already have.
 if command -v rsync >/dev/null; then
@@ -36,4 +45,4 @@ if command -v rsync >/dev/null; then
 else
   cp -rn ./. "$REPO_ROOT"/ || true
 fi
-echo "Scaffold merged into $REPO_ROOT"ss
+echo "Scaffold merged into $REPO_ROOT"
