@@ -1,15 +1,9 @@
 name: ci
-<<<<<<< HEAD
-=======
 
->>>>>>> 918ca8d308f4f7e7748fb2975b738bf4871c5d6a
 on:
   push:
     branches: [main]
   pull_request:
-<<<<<<< HEAD
-jobs:
-=======
 
 jobs:
   gateway-tests:
@@ -24,7 +18,6 @@ jobs:
           node-version: 22
       - run: npm test
 
->>>>>>> 918ca8d308f4f7e7748fb2975b738bf4871c5d6a
   ramp-state-machine-go:
     runs-on: ubuntu-latest
     steps:
