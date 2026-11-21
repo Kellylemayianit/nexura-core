@@ -3,11 +3,17 @@ name: chain-smoke
 
 on:
   workflow_dispatch:
+    inputs:
+      ignite_version:
+        description: "Ignite version, e.g. v29.9.0, or 'latest' for the newest release candidate"
+        default: "v29.9.0"
 
 jobs:
   chain:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      IGNITE_VERSION: ${{ inputs.ignite_version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -16,7 +22,11 @@ jobs:
           cache: false
       - name: Install Ignite
         run: |
-          curl -fsSL 'https://get.ignite.com/cli!' | bash
+          if [ "$IGNITE_VERSION" = "latest" ]; then
+            curl -fsSL 'https://get.ignite.com/cli!' | bash
+          else
+            curl -fsSL "https://get.ignite.com/cli@${IGNITE_VERSION}!" | bash
+          fi
           ignite version
       - name: Scaffold chain around the repo files
         run: bash scripts/01-scaffold.sh
