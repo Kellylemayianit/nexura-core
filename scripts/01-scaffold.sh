@@ -3,9 +3,10 @@
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Ignite v30 moved Cosmos tooling under "ignite cosmos"; older versions use plain "ignite".
-if ignite cosmos --help >/dev/null 2>&1; then IGN="ignite cosmos"; else IGN="ignite"; fi
+# Ignite v30+ uses "ignite cosmos ..."; v29 and older use plain "ignite ...".
+IGN="$(bash "$REPO_ROOT/scripts/ignite-cmd.sh")"
 echo "Using: $IGN"
+ignite version | head -3
 
 TMP="$(mktemp -d)"
 cd "$TMP"
@@ -13,12 +14,14 @@ cd "$TMP"
 scaffold_chain() {
   for FLAGS in "--address-prefix nexura --no-module" "--no-module" ""; do
     rm -rf nexura-core
-    if $IGN scaffold chain github.com/Kellylemayianit/nexura-core $FLAGS; then
+    # Success only counts if the chain folder really exists.
+    if $IGN scaffold chain github.com/Kellylemayianit/nexura-core $FLAGS && [ -d nexura-core ]; then
       echo "Scaffolded with flags: [$FLAGS]"
       return 0
     fi
     echo "Scaffold failed with flags [$FLAGS], trying the next option"
   done
+  echo "ERROR: no scaffold attempt created the chain folder" >&2
   return 1
 }
 scaffold_chain
