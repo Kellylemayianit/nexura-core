@@ -3,39 +3,20 @@ name: chain-smoke
 
 on:
   workflow_dispatch:
-    inputs:
-      ignite_version:
-        description: "Ignite version, e.g. v29.9.0, or 'latest' for the newest release candidate"
-        default: "v29.9.0"
 
 jobs:
   chain:
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    env:
-      IGNITE_VERSION: ${{ inputs.ignite_version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: stable
           cache: false
-      - name: Restore Go caches
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-${{ runner.os }}-ignite-${{ inputs.ignite_version }}-${{ github.run_id }}
-          restore-keys: |
-            go-${{ runner.os }}-ignite-${{ inputs.ignite_version }}-
       - name: Install Ignite
         run: |
-          if [ "$IGNITE_VERSION" = "latest" ]; then
-            curl -fsSL 'https://get.ignite.com/cli!' | bash
-          else
-            curl -fsSL "https://get.ignite.com/cli@${IGNITE_VERSION}!" | bash
-          fi
+          curl -fsSL 'https://get.ignite.com/cli!' | bash
           ignite version
       - name: Scaffold chain around the repo files
         run: bash scripts/01-scaffold.sh
@@ -49,7 +30,7 @@ jobs:
       - name: Unit tests
         run: go test ./...
         continue-on-error: true
-      -       - name: Boot a single node and read the block height
+      - name: Boot a single node and read the block height
         run: |
           IGN="$(bash scripts/ignite-cmd.sh)"
           $IGN chain serve --reset-once > chain.log 2>&1 &
@@ -58,14 +39,7 @@ jobs:
             curl -s localhost:26657/status >/dev/null && break
           done
           sleep 20
-          curl -s localhost:26657/status | jq '.result.sync_info | {latest_block_height, catching_up}'      - name: Save Go caches
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-${{ runner.os }}-ignite-${{ inputs.ignite_version }}-${{ github.run_id }}
+          curl -s localhost:26657/status | jq '.result.sync_info | {latest_block_height, catching_up}'
       - name: Keep the chain log
         if: always()
         uses: actions/upload-artifact@v4
