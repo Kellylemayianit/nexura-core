@@ -1,6 +1,4 @@
-# Manual run: Actions tab -> "chain-smoke" -> Run workflow.
-# Scaffolds the chain in the cloud, builds it, boots a single node and reports the block height.
-# EXPERIMENTAL: written without being able to run Ignite. Read the log if it fails and send it back.
+# Manual run: Actions tab -> chain-smoke -> Run workflow.
 name: chain-smoke
 
 on:
@@ -15,20 +13,27 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+          cache: false
       - name: Install Ignite
         run: |
-          curl -fsSL https://get.ignite.com/cli! | bash
+          curl -fsSL 'https://get.ignite.com/cli!' | bash
           ignite version
+      - name: Show Ignite's real options (diagnostic)
+        run: |
+          ignite cosmos --help || true
+          ignite cosmos scaffold chain --help || true
+          ignite cosmos scaffold module --help || true
       - name: Scaffold chain around the repo files
         run: bash scripts/01-scaffold.sh
       - name: Build
         run: go build ./...
       - name: Unit tests
-        run: go test ./... 
+        run: go test ./...
         continue-on-error: true
       - name: Boot a single node and read the block height
         run: |
-          ignite chain serve --reset-once > chain.log 2>&1 &
+          if ignite cosmos --help >/dev/null 2>&1; then IGN="ignite cosmos"; else IGN="ignite"; fi
+          $IGN chain serve --reset-once > chain.log 2>&1 &
           for i in $(seq 1 60); do
             sleep 5
             curl -s localhost:26657/status >/dev/null && break
