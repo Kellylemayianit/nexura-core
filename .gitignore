@@ -1,0 +1,6 @@
+.env
+.dev.vars
+*.key
+*.pem
+node_modules/
+*.log
